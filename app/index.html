@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project Pulse</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="dashboard" aria-labelledby="dashboard-title">
+      <header class="dashboard-header">
+        <div class="dashboard-header-content">
+          <div class="dashboard-title-row">
+            <h1 class="dashboard-title" id="dashboard-title">Project Pulse</h1>
+            <span class="dashboard-pulse-indicator">Live overview</span>
+          </div>
+          <p class="dashboard-subtitle">A quick view of the projects moving Mona's team forward.</p>
+        </div>
+      </header>
+
+      <section aria-labelledby="projects-heading">
+        <h2 class="sr-only" id="projects-heading">Projects</h2>
+        <div class="project-grid" id="project-grid" aria-live="polite" aria-busy="true"></div>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const grid = document.getElementById("project-grid");
+        const requiredFields = ["name", "owner", "status", "recentActivity", "priority"];
+        const statusValues = new Set(["on-track", "at-risk", "blocked", "completed", "active"]);
+        const priorityValues = new Set(["high", "medium", "low", "urgent", "normal"]);
+
+        function element(tagName, className, text) {
+          const node = document.createElement(tagName);
+          if (className) {
+            node.className = className;
+          }
+          if (text !== undefined) {
+            node.textContent = text;
+          }
+          return node;
+        }
+
+        function normalizeValue(value, allowedValues) {
+          const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
+          return allowedValues.has(normalized) ? normalized : "unknown";
+        }
+
+        function displayLabel(value) {
+          return value.replace(/-/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+        }
+
+        function validateProject(project) {
+          if (!project || typeof project !== "object" || Array.isArray(project)) {
+            return false;
+          }
+          return requiredFields.every((field) =>
+            typeof project[field] === "string" && project[field].trim().length > 0
+          );
+        }
+
+        function createMetaItem(label, value, valueClass) {
+          const row = element("div", "project-meta-item");
+          const term = element("dt", "meta-label", label);
+          const description = element("dd", `meta-value ${valueClass}`, value);
+          row.append(term, description);
+          return row;
+        }
+
+        function createProjectCard(project) {
+          const status = normalizeValue(project.status, statusValues);
+          const priority = normalizeValue(project.priority, priorityValues);
+          const card = element("article", "project-card");
+          const header = element("header", "project-card-header");
+          const name = element("h3", "project-name", project.name.trim());
+          const statusBadge = element("span", `status-badge status-${status}`, displayLabel(status));
+          statusBadge.dataset.status = status;
+          header.append(name, statusBadge);
+
+          const body = element("div", "project-card-body");
+          const meta = element("dl", "project-meta");
+          meta.append(createMetaItem("Owner", project.owner.trim(), "project-owner"));
+          body.append(meta);
+
+          const activity = element("p", "project-activity");
+          activity.append(element("span", "project-activity-label", "Recent activity"));
+          activity.append(document.createTextNode(project.recentActivity.trim()));
+          body.append(activity);
+
+          const footer = element("footer", "project-card-footer");
+          footer.append(element("span", "meta-label", "Priority"));
+          const priorityBadge = element("span", `priority-badge priority-${priority}`, displayLabel(priority));
+          priorityBadge.dataset.priority = priority;
+          footer.append(priorityBadge);
+
+          card.append(header, body, footer);
+          return card;
+        }
+
+        function showState(type, icon, title, description, includeRetry) {
+          grid.replaceChildren();
+          const state = element("div", `${type}-state state-card`);
+          if (type === "error") {
+            state.setAttribute("role", "alert");
+          }
+          state.append(
+            element("span", "state-icon", icon),
+            element("h3", "state-title", title),
+            element("p", "state-description", description)
+          );
+          if (includeRetry) {
+            const retry = element("button", "retry-button", "Try again");
+            retry.type = "button";
+            retry.addEventListener("click", loadProjects);
+            state.append(retry);
+          }
+          grid.append(state);
+        }
+
+        async function loadProjects() {
+          grid.setAttribute("aria-busy", "true");
+          showState("loading", "◌", "Loading projects", "Gathering the latest project updates.", false);
+          try {
+            const response = await fetch("project-data.json", { cache: "no-store" });
+            if (!response.ok) {
+              throw new Error("Project data could not be loaded.");
+            }
+            const data = await response.json();
+            if (!data || typeof data !== "object" || !Array.isArray(data.projects)) {
+              throw new Error("Project data has an invalid format.");
+            }
+            if (!data.projects.every(validateProject)) {
+              throw new Error("One or more projects have invalid details.");
+            }
+            if (data.projects.length === 0) {
+              showState("empty", "○", "No projects yet", "New project updates will appear here when they are available.", false);
+              return;
+            }
+            const cards = data.projects.map(createProjectCard);
+            grid.replaceChildren(...cards);
+          } catch (error) {
+            showState("error", "!", "We couldn't load Project Pulse", "Please check your connection and try again.", true);
+          } finally {
+            grid.setAttribute("aria-busy", "false");
+          }
+        }
+
+        loadProjects();
+      })();
+    </script>
+  </body>
+</html>

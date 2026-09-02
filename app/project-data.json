@@ -1,0 +1,39 @@
+{
+  "projects": [
+    {
+      "name": "Mobile Release Readiness",
+      "owner": "Mona Patel",
+      "status": "on-track",
+      "recentActivity": "Beta feedback was reviewed and the release checklist is ready for final sign-off.",
+      "priority": "high"
+    },
+    {
+      "name": "Customer Insights Hub",
+      "owner": "Alex Morgan",
+      "status": "at-risk",
+      "recentActivity": "The analytics vendor migration needs one more day of validation before reporting can resume.",
+      "priority": "high"
+    },
+    {
+      "name": "Design System Refresh",
+      "owner": "Samira Chen",
+      "status": "active",
+      "recentActivity": "The accessible component inventory has been shared with product teams for review.",
+      "priority": "medium"
+    },
+    {
+      "name": "Infrastructure Resilience",
+      "owner": "Jordan Lee",
+      "status": "blocked",
+      "recentActivity": "Capacity testing is waiting on the scheduled maintenance window from the platform team.",
+      "priority": "medium"
+    },
+    {
+      "name": "Knowledge Base Cleanup",
+      "owner": "Riley Torres",
+      "status": "completed",
+      "recentActivity": "Outdated articles were archived and the updated navigation is now live.",
+      "priority": "low"
+    }
+  ]
+}
